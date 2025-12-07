@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GitHub 远程仓库自动创建工具.....
+GitHub 远程仓库自动创建工具
 支持通过 GitHub CLI 或 Personal Access Token 创建仓库
 """
 
@@ -26,6 +26,8 @@ class GitHubRepoCreator:
             result = subprocess.run(['gh', '--version'],
                                     capture_output=True,
                                     text=True,
+                                    encoding='utf-8',
+                                    errors='ignore',
                                     timeout=5)
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -37,6 +39,8 @@ class GitHubRepoCreator:
             result = subprocess.run(['gh', 'auth', 'status'],
                                     capture_output=True,
                                     text=True,
+                                    encoding='utf-8',
+                                    errors='ignore',
                                     timeout=5)
             return result.returncode == 0
         except subprocess.TimeoutExpired:
@@ -90,6 +94,8 @@ class GitHubRepoCreator:
             result = subprocess.run(['gh', 'api', 'user', '--jq', '.login'],
                                     capture_output=True,
                                     text=True,
+                                    encoding='utf-8',
+                                    errors='ignore',
                                     timeout=10)
             if result.returncode == 0:
                 return result.stdout.strip()
@@ -109,6 +115,8 @@ class GitHubRepoCreator:
             result = subprocess.run(cmd,
                                     capture_output=True,
                                     text=True,
+                                    encoding='utf-8',
+                                    errors='ignore',
                                     timeout=30)
             return result.returncode == 0, result.stderr
         except subprocess.TimeoutExpired:
