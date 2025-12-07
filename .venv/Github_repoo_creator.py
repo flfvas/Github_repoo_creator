@@ -9,9 +9,25 @@ import os
 import sys
 import subprocess
 import json
-import pyperclip
 import requests
 from pathlib import Path
+
+# 处理打包后的路径问题
+if getattr(sys, 'frozen', False):
+    # 如果是打包后的程序
+    application_path = os.path.dirname(sys.executable)
+else:
+    # 如果是脚本运行
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
+# 尝试导入 pyperclip，如果失败则使用备选方案
+try:
+    import pyperclip
+
+    CLIPBOARD_AVAILABLE = True
+except ImportError:
+    CLIPBOARD_AVAILABLE = False
+    print("[警告] pyperclip 模块未安装，将无法自动复制到剪贴板")
 
 
 class GitHubRepoCreator:
@@ -202,15 +218,11 @@ class GitHubRepoCreator:
             print("[错误] 仓库名称不能为空")
             return None
 
-        # 仓库描述
-        description = input("请输入仓库描述 (可选,直接回车跳过): ").strip()
+        # 默认描述为 1.0
+        description = "1.0"
 
-        # 可见性
-        print("\n请选择仓库可见性:")
-        print("1. Public (公开)")
-        print("2. Private (私有)")
-        visibility = input("请选择 (1/2, 默认为 1): ").strip()
-        is_private = visibility == '2'
+        # 默认为公开仓库
+        is_private = False
 
         return {
             'name': repo_name,
@@ -227,17 +239,12 @@ class GitHubRepoCreator:
         if not repo_info:
             return False
 
-        # 确认信息
+        # 显示信息但不需要确认
         print("\n" + "-" * 50)
         print(f"仓库名称: {repo_info['name']}")
-        print(f"仓库描述: {repo_info['description'] or '无'}")
+        print(f"仓库描述: {repo_info['description']}")
         print(f"可见性: {'私有' if repo_info['is_private'] else '公开'}")
         print("-" * 50)
-
-        confirm = input("\n确认创建? (Y/N, 默认 Y): ").strip().upper()
-        if confirm == 'N':
-            print("已取消创建")
-            return False
 
         # 创建仓库
         print("\n[信息] 正在创建仓库...")
@@ -267,34 +274,58 @@ class GitHubRepoCreator:
         print(f"\n仓库地址: {repo_url}")
 
         # 复制到剪贴板
-        try:
-            pyperclip.copy(repo_url)
-            print("\n[成功] 仓库地址已复制到剪贴板!")
-        except Exception as e:
-            print(f"\n[警告] 复制到剪贴板失败: {e}")
-            print("请手动复制上面的地址")
-
-        # 询问是否打开浏览器
-        open_browser = input("\n是否在浏览器中打开仓库? (Y/N, 默认 N): ").strip().upper()
-        if open_browser == 'Y':
-            import webbrowser
-            webbrowser.open(f"https://github.com/{self.username}/{repo_info['name']}")
+        if CLIPBOARD_AVAILABLE:
+            try:
+                pyperclip.copy(repo_url)
+                print("\n[成功] 仓库地址已复制到剪贴板!")
+            except Exception as e:
+                print(f"\n[警告] 复制到剪贴板失败: {e}")
+                print("请手动复制上面的地址")
+        else:
+            print("\n[提示] 请手动复制上面的地址")
 
         return True
 
 
 def main():
+    # 设置控制台编码为 UTF-8
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            kernel32.SetConsoleOutputCP(65001)
+            kernel32.SetConsoleCP(65001)
+        except:
+            pass
+
+    # 确保即使出错也能看到错误信息
     try:
+        print("正在启动 GitHub 仓库创建工具...")
+        print("Python 版本:", sys.version)
+        print("工作目录:", os.getcwd())
+        print()
+
         creator = GitHubRepoCreator()
-        creator.create_repository()
+        success = creator.create_repository()
+
+        # 无论成功失败都等待用户按键
+        if success:
+            print("\n" + "=" * 50)
+            print("操作完成!")
+            print("=" * 50)
+
     except KeyboardInterrupt:
         print("\n\n[提示] 用户取消操作")
-        sys.exit(0)
     except Exception as e:
         print(f"\n[错误] 发生未预期的错误: {e}")
-        sys.exit(1)
-
-    input("\n按 Enter 键退出...")
+        print(f"错误类型: {type(e).__name__}")
+        import traceback
+        print("\n完整错误信息:")
+        traceback.print_exc()
+    finally:
+        # 确保窗口不会闪退
+        print("\n" + "=" * 50)
+        input("按 Enter 键退出...")
 
 
 if __name__ == '__main__':
