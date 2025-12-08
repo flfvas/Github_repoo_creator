@@ -11,6 +11,7 @@ import subprocess
 import json
 import requests
 from pathlib import Path
+import pyperclip
 
 # 处理打包后的路径问题
 if getattr(sys, 'frozen', False):
@@ -19,15 +20,6 @@ if getattr(sys, 'frozen', False):
 else:
     # 如果是脚本运行
     application_path = os.path.dirname(os.path.abspath(__file__))
-
-# 尝试导入 pyperclip，如果失败则使用备选方案
-try:
-    import pyperclip
-
-    CLIPBOARD_AVAILABLE = True
-except ImportError:
-    CLIPBOARD_AVAILABLE = False
-    print("[警告] pyperclip 模块未安装，将无法自动复制到剪贴板")
 
 
 class GitHubRepoCreator:
@@ -274,15 +266,12 @@ class GitHubRepoCreator:
         print(f"\n仓库地址: {repo_url}")
 
         # 复制到剪贴板
-        if CLIPBOARD_AVAILABLE:
-            try:
-                pyperclip.copy(repo_url)
-                print("\n[成功] 仓库地址已复制到剪贴板!")
-            except Exception as e:
-                print(f"\n[警告] 复制到剪贴板失败: {e}")
-                print("请手动复制上面的地址")
-        else:
-            print("\n[提示] 请手动复制上面的地址")
+
+        try:
+            pyperclip.copy(repo_url)
+            print("\n[成功] 仓库地址已复制到剪贴板!")
+        except pyperclip.PyperclipException as e:
+            print("复制失败, 请手动复制", e)
 
         return True
 
